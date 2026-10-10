@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kokofibo Photo Tools</title>
+<style>
+  :root{
+    --bg:#17181A;
+    --surface:#1F2123;
+    --surface-2:#26282B;
+    --border:#33353A;
+    --text:#EDECE8;
+    --text-dim:#9A9994;
+    --accent:#E8963D;
+    --accent-dim:#7A5A2C;
+    --good:#7BAE83;
+    --bad:#C96256;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:56px 24px 96px;}
+  header{margin-bottom:36px;}
+  .kicker{
+    font-size:13px;color:var(--accent);letter-spacing:.02em;margin:0 0 8px;
+    font-variant-numeric:tabular-nums;
+  }
+  h1{font-size:28px;font-weight:600;margin:0 0 10px;letter-spacing:-.01em;}
+  .sub{color:var(--text-dim);font-size:15px;line-height:1.55;max-width:56ch;margin:0;}
+
+  .controls{
+    display:flex;gap:28px;flex-wrap:wrap;align-items:flex-end;
+    margin:32px 0 28px;padding:20px 22px;background:var(--surface);
+    border:1px solid var(--border);border-radius:10px;
+  }
+  .field{display:flex;flex-direction:column;gap:8px;min-width:170px;}
+  .field label{font-size:12px;color:var(--text-dim);display:flex;justify-content:space-between;}
+  .field label span.val{color:var(--text);font-variant-numeric:tabular-nums;}
+  input[type=range]{
+    -webkit-appearance:none;height:3px;background:var(--border);border-radius:2px;outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;margin-top:-6px;
+  }
+  input[type=number]{
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    border-radius:6px;padding:8px 10px;font-size:14px;width:100%;
+  }
+  select{
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    border-radius:6px;padding:8px 10px;font-size:14px;
+  }
+
+  .drop{
+    border:1.5px dashed var(--border);border-radius:12px;
+    padding:48px 24px;text-align:center;cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .drop:hover, .drop.drag{border-color:var(--accent);background:rgba(232,150,61,.05);}
+  .drop p{margin:0;color:var(--text-dim);font-size:14px;}
+  .drop p.main{color:var(--text);font-size:15px;margin-bottom:6px;}
+  input[type=file]{display:none;}
+
+  .toolbar{
+    display:flex;justify-content:space-between;align-items:center;
+    margin:28px 0 14px;
+  }
+  .toolbar h2{font-size:14px;font-weight:600;margin:0;color:var(--text-dim);}
+  button.ghost{
+    background:transparent;border:1px solid var(--border);color:var(--text);
+    padding:8px 14px;border-radius:7px;font-size:13px;cursor:pointer;
+  }
+  button.ghost:hover{border-color:var(--accent);color:var(--accent);}
+  button.ghost:disabled{opacity:.4;cursor:not-allowed;}
+
+  .presets{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 16px;}
+  .presets .presets-label{font-size:12px;color:var(--text-dim);}
+  .preset-btn{
+    background:var(--surface);border:1px solid var(--border);color:var(--text);
+    padding:7px 14px;border-radius:20px;font-size:13px;cursor:pointer;
+  }
+  .preset-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .preset-btn.active{background:var(--accent);border-color:var(--accent);color:#1A1200;font-weight:600;}
+
+  .item{
+    display:grid;grid-template-columns:56px 1fr auto;gap:16px;align-items:center;
+    padding:14px 16px;background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;margin-bottom:10px;
+  }
+  .item img{width:56px;height:56px;object-fit:cover;border-radius:6px;background:var(--surface-2);}
+  .meta .name{font-size:14px;margin-bottom:4px;word-break:break-all;}
+  .meta .sizes{font-size:12px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
+  .meta .sizes .save{color:var(--good);}
+  .meta .status{font-size:12px;color:var(--text-dim);word-break:break-word;}
+  .item .actions{display:flex;gap:8px;align-items:center;}
+  .dl{
+    background:var(--accent);color:#1A1200;border:none;padding:9px 16px;
+    border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;
+    white-space:nowrap;
+  }
+  .dl:hover{background:#F0A852;}
+  .dl[disabled]{background:var(--surface-2);color:var(--text-dim);cursor:default;}
+  .rm{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px;padding:4px 6px;line-height:1;}
+  .rm:hover{color:var(--bad);}
+
+  .empty{color:var(--text-dim);font-size:14px;padding:24px 0;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">KOKOFIBO PHOTO TOOLS</p>
+    <h1>Kompres foto & convert ke WebP</h1>
+    <p class="sub">Upload beberapa foto sekaligus. Semua proses jalan di browser kamu sendiri — tidak ada file yang diupload ke server manapun.</p>
+  </header>
+
+  <div class="presets" id="presets">
+    <span class="presets-label">Preset cepat:</span>
+  </div>
+
+  <div class="controls">
+    <div class="field" style="min-width:130px;">
+      <label>Lebar maksimum (px)</label>
+      <input type="number" id="maxWidth" min="1" max="10000" step="1" value="1600" placeholder="mis. 1600">
+    </div>
+    <div class="field" style="min-width:130px;">
+      <label>Tinggi maksimum (px)</label>
+      <input type="number" id="maxHeight" min="1" max="10000" step="1" value="1600" placeholder="mis. 1600">
+    </div>
+    <div class="field">
+      <label>Kualitas <span class="val" id="qualityVal">75%</span></label>
+      <input type="range" id="quality" min="10" max="100" step="5" value="75">
+    </div>
+    <div class="field" style="min-width:130px;">
+      <label>Format output</label>
+      <select id="format">
+        <option value="image/webp" selected>WebP</option>
+        <option value="image/jpeg">JPEG</option>
+        <option value="image/png">PNG</option>
+      </select>
+    </div>
+  </div>
+  <p class="sub" style="margin:-16px 0 24px;font-size:13px;">Foto akan diperkecil agar muat dalam batas lebar &amp; tinggi ini (rasio tetap terjaga). Kosongkan salah satu untuk hanya membatasi sisi itu.</p>
+
+  <div class="drop" id="drop">
+    <p class="main">Drag & drop foto di sini</p>
+    <p>atau klik untuk pilih file — JPG, PNG, WebP, dll.</p>
+    <input type="file" id="fileInput" accept="image/*" multiple>
+  </div>
+
+  <div class="toolbar">
+    <h2 id="listHeading">BELUM ADA FILE</h2>
+    <button class="ghost" id="downloadAll" disabled>Download semua</button>
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const list = document.getElementById('list');
+const listHeading = document.getElementById('listHeading');
+const downloadAllBtn = document.getElementById('downloadAll');
+const maxWidthInput = document.getElementById('maxWidth');
+const maxHeightInput = document.getElementById('maxHeight');
+const qualityInput = document.getElementById('quality');
+const formatSelect = document.getElementById('format');
+const qualityVal = document.getElementById('qualityVal');
+const presetsBar = document.getElementById('presets');
+
+const PRESETS = [
+  { name: 'Yifang Blog', maxWidth: '', maxHeight: 675, quality: 75, format: 'image/webp' }
+];
+
+PRESETS.forEach(preset => {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'preset-btn';
+  btn.textContent = preset.name;
+  btn.addEventListener('click', () => {
+    maxWidthInput.value = preset.maxWidth;
+    maxHeightInput.value = preset.maxHeight;
+    qualityInput.value = preset.quality;
+    qualityVal.textContent = preset.quality + '%';
+    formatSelect.value = preset.format;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+  presetsBar.appendChild(btn);
+});
+
+let items = [];
+let idCounter = 0;
+
+qualityInput.addEventListener('input', () => qualityVal.textContent = qualityInput.value + '%');
+
+[maxWidthInput, maxHeightInput, qualityInput, formatSelect].forEach(el => {
+  el.addEventListener('input', () => {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  });
+});
+
+drop.addEventListener('click', () => fileInput.click());
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+function handleFiles(fileList){
+  const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+  files.forEach(file => {
+    const item = {
+      id: idCounter++,
+      file,
+      originalUrl: URL.createObjectURL(file),
+      status: 'processing',
+      resultBlob: null,
+      resultUrl: null
+    };
+    items.push(item);
+  });
+  render();
+  files.forEach((f, i) => processItem(items[items.length - files.length + i]));
+}
+
+function extFor(mime){
+  if (mime === 'image/webp') return 'webp';
+  if (mime === 'image/jpeg') return 'jpg';
+  if (mime === 'image/png') return 'png';
+  return 'img';
+}
+
+function baseName(name){
+  const dot = name.lastIndexOf('.');
+  return dot > 0 ? name.slice(0, dot) : name;
+}
+
+function loadImage(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function processItem(item){
+  try {
+    const img = await loadImage(item.originalUrl);
+
+    const maxW = parseInt(maxWidthInput.value, 10) || null;
+    const maxH = parseInt(maxHeightInput.value, 10) || null;
+    const quality = parseInt(qualityInput.value, 10) / 100;
+    const mime = formatSelect.value;
+
+    let w = img.naturalWidth;
+    let h = img.naturalHeight;
+    let ratio = 1;
+    if (maxW && w > maxW) ratio = Math.min(ratio, maxW / w);
+    if (maxH && h > maxH) ratio = Math.min(ratio, maxH / h);
+    if (ratio < 1) {
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (mime === 'image/jpeg'){
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+    }
+    ctx.drawImage(img, 0, 0, w, h);
+
+    canvas.toBlob(blob => {
+      if (!blob) {
+        item.status = 'error';
+        item.errorMsg = 'Gagal memproses file ini';
+        render();
+        return;
+      }
+      item.resultBlob = blob;
+      item.resultUrl = URL.createObjectURL(blob);
+      item.outW = w;
+      item.outH = h;
+      item.status = 'done';
+      render();
+    }, mime, mime === 'image/png' ? undefined : quality);
+  } catch (err){
+    item.status = 'error';
+    console.error('Processing error:', err);
+    item.errorMsg = 'Gagal memproses file ini';
+    render();
+  }
+}
+
+function formatBytes(bytes){
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(2) + ' MB';
+}
+
+function removeItem(id){
+  items = items.filter(it => it.id !== id);
+  render();
+}
+
+function render(){
+  const count = items.length;
+  listHeading.textContent = count === 0 ? 'BELUM ADA FILE' : `${count} FILE`;
+  const doneCount = items.filter(it => it.status === 'done').length;
+  downloadAllBtn.disabled = doneCount === 0;
+
+  if (count === 0){
+    list.innerHTML = '<div class="empty">Foto yang kamu upload akan muncul di sini.</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  items.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'item';
+
+    let sizesHtml = `<div class="status">Memproses...</div>`;
+    let actionHtml = `<button class="dl" disabled>...</button>`;
+
+    if (item.status === 'done'){
+      const savedPct = Math.round((1 - item.resultBlob.size / item.file.size) * 100);
+      const saveLabel = savedPct >= 0
+        ? `<span class="save">-${savedPct}%</span>`
+        : `<span style="color:var(--bad)">+${Math.abs(savedPct)}%</span>`;
+      sizesHtml = `<div class="sizes">${formatBytes(item.file.size)} &rarr; ${formatBytes(item.resultBlob.size)} ${saveLabel} &middot; ${item.outW}&times;${item.outH}</div>`;
+      const ext = extFor(formatSelect.value);
+      actionHtml = `<a class="dl" href="${item.resultUrl}" download="${baseName(item.file.name)}.${ext}">Download</a>`;
+    } else if (item.status === 'error'){
+      sizesHtml = `<div class="status" style="color:var(--bad)">${item.errorMsg || 'Gagal memproses file ini'}</div>`;
+      actionHtml = `<button class="dl" disabled>Error</button>`;
+    }
+
+    el.innerHTML = `
+      <img src="${item.originalUrl}" alt="">
+      <div class="meta">
+        <div class="name">${item.file.name}</div>
+        ${sizesHtml}
+      </div>
+      <div class="actions">
+        ${actionHtml}
+        <button class="rm" title="Hapus" data-id="${item.id}">&times;</button>
+      </div>
+    `;
+    el.querySelector('.rm').addEventListener('click', () => removeItem(item.id));
+    list.appendChild(el);
+  });
+}
+
+downloadAllBtn.addEventListener('click', async () => {
+  const done = items.filter(it => it.status === 'done');
+  if (done.length === 0) return;
+  downloadAllBtn.textContent = 'Menyiapkan...';
+  downloadAllBtn.disabled = true;
+
+  const zip = new JSZip();
+  const ext = extFor(formatSelect.value);
+  const usedNames = new Set();
+  done.forEach(item => {
+    let name = `${baseName(item.file.name)}.${ext}`;
+    let n = 1;
+    while (usedNames.has(name)){
+      name = `${baseName(item.file.name)}-${n}.${ext}`;
+      n++;
+    }
+    usedNames.add(name);
+    zip.file(name, item.resultBlob);
+  });
+
+  const content = await zip.generateAsync({type:'blob'});
+  const url = URL.createObjectURL(content);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'foto-optimized.zip';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+  downloadAllBtn.textContent = 'Download semua';
+  downloadAllBtn.disabled = false;
+});
+
+render();
+</script>
+</body>
+</html>
